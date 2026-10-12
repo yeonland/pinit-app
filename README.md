@@ -7,7 +7,7 @@
 ## 1. Links
 
 - **배포 사이트 (Flutter Web):** https://pinit-beta.vercel.app/
-- **GitHub:** https://github.com/yeonland/portfolio/tree/main/pinit_app
+- **GitHub:** https://github.com/yeonland/pinit_app
 
 ## 2. 프로젝트 배경
 
