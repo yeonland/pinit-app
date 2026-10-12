@@ -7,7 +7,7 @@
 ## 1. Links
 
 - **배포 사이트 (Flutter Web):** https://pinit-beta.vercel.app/
-- **GitHub:** https://github.com/yeonland/pinit_app
+- **GitHub:** https://github.com/yeonland/pinit-app
 
 ## 2. 프로젝트 배경
 
@@ -93,8 +93,8 @@ pinit_app/
 ### ① 저장소 복제 및 패키지 설치
 
 ```bash
-git clone https://github.com/yeonland/pinit_app.git
-cd pinit_app
+git clone https://github.com/yeonland/pinit-app.git
+cd pinit-app
 flutter pub get
 ```
 
