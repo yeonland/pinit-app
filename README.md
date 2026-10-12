@@ -93,8 +93,8 @@ pinit_app/
 ### ① 저장소 복제 및 패키지 설치
 
 ```bash
-git clone https://github.com/yeonland/portfolio.git
-cd portfolio/pinit_app
+git clone https://github.com/yeonland/pinit_app.git
+cd pinit_app
 flutter pub get
 ```
 
