@@ -22,6 +22,22 @@ void main() {
     expect(find.byType(PinItApp), findsOneWidget);
   });
 
+  testWidgets('넓은 화면에서는 하단 탭 대신 왼쪽 세로 메뉴가 보이고 예약 양식은 600px까지만 늘어난다', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(const PinItApp());
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(BottomNavigationBar), findsNothing);
+
+    await tester.tap(find.text('내 예약'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('예약 문의 쓰기'));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(ReservationFormScreen)).width, 600);
+  });
+
   testWidgets('홈에서 카테고리를 고르면 그 카테고리 디자인만 보인다', (WidgetTester tester) async {
     await tester.pumpWidget(const PinItApp());
 

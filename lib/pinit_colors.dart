@@ -9,5 +9,8 @@ const Color kakaoYellow = Color(0xFFFEE500);
 const Color naverGreen = Color(0xFF03C75A);
 const Color instagramPink = Color(0xFFE1306C);
 
+// 이 너비 이상이면 넓은 화면(태블릿·웹) 레이아웃
+const double pinitWideWidth = 840;
+
 // 가격 문자열(예: '55,000원')을 숫자로
 int priceValue(String? price) => int.tryParse((price ?? '').replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;

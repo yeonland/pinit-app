@@ -137,6 +137,8 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
   Widget build(BuildContext context) {
     final filteredShops = _filteredShops;
     final hasNothing = filteredShops.isEmpty && !_showNailShops;
+    // 넓은 화면에선 샵 카드를 오른쪽 패널로 (안내 문구는 그대로 하단 가운데)
+    final sidePanel = !hasNothing && MediaQuery.sizeOf(context).width >= pinitWideWidth;
 
     return Stack(
       children: [
@@ -262,12 +264,14 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
           ),
         ),
 
-        // 4. 하단: 핀을 눌렀을 때만 샵 카드 표시
+        // 4. 핀을 눌렀을 때만 샵 카드 표시 (폰: 하단 / 넓은 화면: 필터 아래 오른쪽 패널)
         if (_selectedShop != null || _selectedNail != null || hasNothing)
           Positioned(
-            bottom: 28,
-            left: 16,
+            top: sidePanel ? 116 : null,
+            bottom: sidePanel ? null : 28,
+            left: sidePanel ? null : 16,
             right: 16,
+            width: sidePanel ? 400 : null,
             child: hasNothing
                 ? Center(
                     child: Container(

@@ -143,13 +143,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
-          body: ReservationFormScreen(
-            design: design,
-            onSaved: _addReservation,
-            onViewTimeline: () {
-              Navigator.of(routeContext).popUntil((route) => route.isFirst);
-              _goToTimeline();
-            },
+          // 넓은 화면에서 양식이 끝없이 늘어나지 않게 가운데 600px까지만
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: ReservationFormScreen(
+                design: design,
+                onSaved: _addReservation,
+                onViewTimeline: () {
+                  Navigator.of(routeContext).popUntil((route) => route.isFirst);
+                  _goToTimeline();
+                },
+              ),
+            ),
           ),
         ),
       ),
@@ -209,6 +215,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     ];
 
+    // 탭: (아이콘, 선택됐을 때 아이콘, 이름) - 하단 탭과 세로 메뉴가 같이 씀
+    final List<(Widget, Widget?, String)> tabs = [
+      (const Icon(Icons.home_outlined), const Icon(Icons.home), '홈'),
+      (const Icon(Icons.auto_awesome), null, '디자인'), // 반짝이는 픽 아이콘
+      (const Icon(Icons.map_outlined), const Icon(Icons.map), '지도'),
+      // 보관함: 저장한 디자인 개수 배지
+      (
+        ListenableBuilder(
+          listenable: _favorites,
+          builder: (context, _) => Badge(
+            isLabelVisible: _favorites.count > 0,
+            label: Text('${_favorites.count}'),
+            child: Icon(_selectedIndex == _boardTab ? Icons.bookmark : Icons.bookmark_border),
+          ),
+        ),
+        null,
+        '보관함',
+      ),
+      (const Icon(Icons.event_note), null, '내 예약'),
+    ];
+    void selectTab(int index) => setState(() => _selectedIndex = index);
+    final isWide = MediaQuery.sizeOf(context).width >= pinitWideWidth;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -231,7 +260,24 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      body: pages[_selectedIndex],
+      // 넓은 화면: 왼쪽 세로 메뉴 / 폰: 하단 탭
+      body: isWide
+          ? Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: selectTab,
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    for (final (icon, activeIcon, label) in tabs)
+                      NavigationRailDestination(icon: icon, selectedIcon: activeIcon, label: Text(label)),
+                  ],
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(child: pages[_selectedIndex]),
+              ],
+            )
+          : pages[_selectedIndex],
       // 내 예약 탭: 디자인 없이 바로 예약 문의 쓰기
       floatingActionButton: _selectedIndex == _timelineTab
           ? FloatingActionButton.extended(
@@ -242,47 +288,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               label: const Text('예약 문의 쓰기', style: TextStyle(fontWeight: FontWeight.bold)),
             )
           : null,
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, // 탭 4개 이상이면 고정형으로
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: '홈',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.auto_awesome), // 반짝이는 픽 아이콘
-            label: '디자인',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: '지도',
-          ),
-          // 보관함: 저장한 디자인 개수 배지
-          BottomNavigationBarItem(
-            icon: ListenableBuilder(
-              listenable: _favorites,
-              builder: (context, _) => Badge(
-                isLabelVisible: _favorites.count > 0,
-                label: Text('${_favorites.count}'),
-                child: Icon(_selectedIndex == _boardTab ? Icons.bookmark : Icons.bookmark_border),
-              ),
+      bottomNavigationBar: isWide
+          ? null
+          : BottomNavigationBar(
+              type: BottomNavigationBarType.fixed, // 탭 4개 이상이면 고정형으로
+              currentIndex: _selectedIndex,
+              onTap: selectTab,
+              items: [
+                for (final (icon, activeIcon, label) in tabs)
+                  BottomNavigationBarItem(icon: icon, activeIcon: activeIcon, label: label),
+              ],
             ),
-            label: '보관함',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.event_note),
-            label: '내 예약',
-          ),
-        ],
-      ),
     );
   }
 }
