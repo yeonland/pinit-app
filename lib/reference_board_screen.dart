@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'design_detail_sheet.dart';
 import 'favorites.dart';
+import 'pinit_colors.dart';
 
 // ---------------------------------------------------------------------------
 // 🔖 보관함(레퍼런스 보드) - 저장한 디자인을 카테고리(키워드)별로 모아보기 (하단 탭)
@@ -141,7 +142,7 @@ class ReferenceBoardScreen extends StatelessWidget {
                       ),
                       icon: const Icon(
                         Icons.bookmark,
-                        color: Color(0xFFFF6FA5),
+                        color: pinitAccent,
                         size: 20,
                       ),
                       onPressed: () => _remove(context, item),
