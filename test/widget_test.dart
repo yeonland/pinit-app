@@ -48,12 +48,24 @@ void main() {
 
     await tester.tap(find.text('메이크업'));
     await tester.pumpAndSettle();
-    expect(find.text('💄 메이크업 디자인'), findsOneWidget);
     expect(find.text('120,000원'), findsOneWidget);
     expect(find.text('55,000원'), findsNothing); // 네일 디자인은 숨김
 
-    // 전체 보기로 해제
-    await tester.tap(find.text('전체 보기'));
+    // 상단 카테고리 칩 '전체'로 해제 (첫 번째 '전체'가 카테고리 칩)
+    await tester.tap(find.text('전체').first);
+    await tester.pumpAndSettle();
+    expect(find.text('55,000원'), findsOneWidget);
+  });
+
+  testWidgets('내 예약의 디자인 둘러보기는 항상 전체 디자인으로 간다', (WidgetTester tester) async {
+    await tester.pumpWidget(const PinItApp());
+    await tester.tap(find.text('꽃집'));
+    await tester.pumpAndSettle();
+    expect(find.text('55,000원'), findsNothing);
+
+    await tester.tap(find.text('내 예약'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('디자인 둘러보기'));
     await tester.pumpAndSettle();
     expect(find.text('55,000원'), findsOneWidget);
   });
@@ -244,7 +256,7 @@ void main() {
     // 상세 화면 닫기 → 피드에 🔖 표시 + 보관함 탭 배지 1
     await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.bookmark), findsOneWidget);
+    expect(find.byIcon(Icons.bookmark), findsNWidgets(2)); // 사진 위 표시 + 카드의 「저장됨」 버튼
     expect(find.descendant(of: find.byType(Badge), matching: find.text('1')), findsOneWidget);
 
     // 보관함 탭에서 카테고리별로 확인
@@ -323,28 +335,32 @@ void main() {
     ));
     await tester.pump();
 
-    // 처음엔 카드 없이 지도만
+    // 처음엔 아무 샵도 고르지 않음: 카드도 이름표도 없이 점만
     expect(find.text('N 네이버'), findsNothing);
+    expect(find.text('💅 테스트네일'), findsNothing);
 
-    // 네일 핀을 누르면 카드: 네이버 + 카톡 + 인스타 모두 표시
-    await tester.tap(find.text('💅 테스트네일'));
+    // 네일 샵을 고르면 이름표 + 카드: 네이버 + 카톡 + 인스타 모두 표시
+    await tester.enterText(find.byType(TextField), '테스트네일');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
-    expect(find.text('테스트네일'), findsOneWidget);
+    expect(find.text('💅 테스트네일'), findsOneWidget);
+    expect(find.text('테스트네일'), findsNWidgets(2)); // 검색창에 입력한 글자 + 카드 제목
     expect(find.text('💬 카톡문의'), findsOneWidget);
     expect(find.text('📸 인스타'), findsOneWidget);
 
-    // 닫기 버튼을 누르면 카드가 사라짐
+    // 닫기 버튼을 누르면 카드와 이름표가 사라짐
     await tester.tap(find.byTooltip('닫기'));
     await tester.pumpAndSettle();
-    expect(find.text('테스트네일'), findsNothing);
+    expect(find.text('테스트네일'), findsOneWidget); // 검색창에 입력한 글자만 남음
+    expect(find.text('💅 테스트네일'), findsNothing);
 
-    // 케이크만 보기: 네일 핀은 숨김, 링크가 없는 카톡·인스타 버튼도 숨김
+    // 케이크만 보기: 링크가 없는 카톡·인스타 버튼은 숨김
     await tester.tap(find.text('🎂 케이크'));
     await tester.pumpAndSettle();
-    expect(find.text('💅 테스트네일'), findsNothing);
-    await tester.tap(find.text('🎂 테스트케이크'));
+    await tester.enterText(find.byType(TextField), '테스트케이크');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
-    expect(find.text('테스트케이크'), findsOneWidget);
+    expect(find.text('테스트케이크'), findsNWidgets(2)); // 검색창에 입력한 글자 + 카드 제목
     expect(find.text('N 네이버'), findsOneWidget);
     expect(find.text('💬 카톡문의'), findsNothing);
 

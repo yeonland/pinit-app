@@ -10,6 +10,7 @@ import 'pinit_colors.dart';
 import 'reference_board_screen.dart';
 import 'reservation.dart';
 import 'reservation_timeline_screen.dart';
+import 'shop.dart';
 
 void main() {
   runApp(const PinItApp());
@@ -191,7 +192,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       PinItPickScreen(
         key: ValueKey(_designCategory),
         category: _designCategory,
-        onClearCategory: () => setState(() => _designCategory = null),
+        onCategoryChanged: (category) => setState(() => _designCategory = category),
         favorites: _favorites,
         onReserve: _openReservationForm,
       ),
@@ -211,7 +212,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onDelete: (reservation) => _updateReservations(
           _reservations.where((r) => r.id != reservation.id).toList(),
         ),
-        onBrowse: () => setState(() => _selectedIndex = _designTab),
+        // 둘러보기는 항상 전체 디자인부터
+        onBrowse: () => setState(() {
+          _designCategory = null;
+          _selectedIndex = _designTab;
+        }),
       ),
     ];
 
@@ -235,7 +240,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       (const Icon(Icons.event_note), null, '내 예약'),
     ];
-    void selectTab(int index) => setState(() => _selectedIndex = index);
+    void selectTab(int index) => setState(() {
+          // 탭으로 디자인에 들어오면 전체부터 (카테고리는 홈 카드나 상단 칩으로 고름)
+          if (index == _designTab && _selectedIndex != _designTab) _designCategory = null;
+          _selectedIndex = index;
+        });
     final isWide = MediaQuery.sizeOf(context).width >= pinitWideWidth;
 
     return Scaffold(
@@ -278,7 +287,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ],
             )
           : pages[_selectedIndex],
-      // 내 예약 탭: 디자인 없이 바로 예약 문의 쓰기
+      // 내 예약 탭: 디자인 없이 바로 예약 문의 쓰기 (보관함 탭의 레퍼런스 추가는 화면 상단 버튼)
       floatingActionButton: _selectedIndex == _timelineTab
           ? FloatingActionButton.extended(
               onPressed: _openReservationForm,
@@ -309,14 +318,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 // ---------------------------------------------------------------------------
 class PinItPickScreen extends StatefulWidget {
   final String? category; // 홈에서 고른 카테고리 (null이면 전체)
-  final VoidCallback? onClearCategory;
+  final ValueChanged<String?> onCategoryChanged; // null이면 전체
   final FavoritesStore favorites;
   final ValueChanged<Map<String, String>> onReserve;
 
   const PinItPickScreen({
     super.key,
     this.category,
-    this.onClearCategory,
+    required this.onCategoryChanged,
     required this.favorites,
     required this.onReserve,
   });
@@ -393,24 +402,25 @@ class _PinItPickScreenState extends State<PinItPickScreen> {
 
     return Column(
       children: [
-        // 0. 홈에서 고른 카테고리 (전체 보기로 해제)
-        if (widget.category != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 8, 0),
-            child: Row(
-              children: [
-                Text(
-                  '${widget.category} 디자인',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        // 0. 카테고리 (전체 · 네일 · 속눈썹 …) - 홈에서 고른 카테고리가 선택된 채로 열림
+        SizedBox(
+          height: 46,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            children: [
+              for (final category in [null, ...shopCategories])
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: pinitChip(
+                    label: category ?? '전체',
+                    isSelected: widget.category == category,
+                    onSelected: () => widget.onCategoryChanged(category),
+                  ),
                 ),
-                const Spacer(),
-                TextButton(
-                  onPressed: widget.onClearCategory,
-                  child: const Text('전체 보기'),
-                ),
-              ],
-            ),
+            ],
           ),
+        ),
 
         // 1. 검색 바
         Padding(
@@ -601,27 +611,59 @@ class _PinItPickScreenState extends State<PinItPickScreen> {
                 ],
               ),
             ),
+            // 보관함 저장 · 양식 쓰기
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
               child: SizedBox(
-                width: double.infinity,
                 height: 32,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: pinitAccentDark,
-                    side: const BorderSide(color: pinitAccent),
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  icon: const Icon(Icons.edit_note, size: 16),
-                  label: const Text('양식 쓰기', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  onPressed: () => widget.onReserve(item),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildSaveButton(item)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: pinitAccentDark,
+                          side: const BorderSide(color: pinitAccent),
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.edit_note, size: 16),
+                        label: const Text('양식 쓰기', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: () => widget.onReserve(item),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // 보관함 저장 버튼 (저장되면 채워진 코랄 버튼으로 바뀜)
+  Widget _buildSaveButton(Map<String, String> item) {
+    final isSaved = widget.favorites.isFavorite(item);
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: isSaved ? pinitAccent : pinitAccent.withValues(alpha: 0.12),
+        foregroundColor: isSaved ? Colors.white : pinitAccentDark,
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, size: 16),
+      label: Text(isSaved ? '저장됨' : '저장', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      onPressed: () {
+        widget.favorites.toggle(item);
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            duration: const Duration(seconds: 2),
+            content: Text(isSaved ? '보관함에서 뺐어요.' : '보관함에 저장했어요. 하단 「보관함」 탭에서 볼 수 있어요.'),
+          ));
+      },
     );
   }
 }
