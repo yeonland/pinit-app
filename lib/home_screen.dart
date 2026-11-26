@@ -20,8 +20,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 지도에 샵이 등록된 카테고리 (지금은 네일만)
-    final categoriesWithShops = pinitShops.map((shop) => shop.category).toSet();
+    // 지도에 샵이 있는 카테고리: 공공데이터(public_shops.json)에 6개 카테고리 모두 실제 샵이 있음
+    final categoriesWithShops = shopCategories.toSet();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),

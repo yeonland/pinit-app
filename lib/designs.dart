@@ -1,6 +1,39 @@
-// 핀잇 픽 디자인 목록 (예시 샵 · 임의 이미지)
+// 핀잇 픽 디자인 목록
+// 앞 3개: 실제 샵의 인스타그램 게시물 (사진 대신 공식 임베드로 표시, 'account'는 원작자 계정)
+// 나머지: 예시 샵 · 임의 이미지
 // category는 shop.dart의 shopCategories 중 하나
+// price는 시작 가격 (가격대 필터가 숫자만 뽑아 쓰므로 '~' 뒤에 숫자를 쓰지 않음)
 const List<Map<String, String>> pinitDesigns = [
+  {
+    'shop': '리유네일',
+    'title': '12월 이달의아트 (크리스마스)',
+    'price': '83,000원~',
+    'category': '💅 네일',
+    'keyword': '#크리스마스네일',
+    'tag': '#이달의아트',
+    'account': 'riyu__nail',
+    'instagram': 'https://www.instagram.com/p/DgMyvgdGEbT/',
+  },
+  {
+    'shop': '네일뿐',
+    'title': '12월 캐릭터 크리스마스 아트',
+    'price': '95,000원',
+    'category': '💅 네일',
+    'keyword': '#크리스마스네일',
+    'tag': '#이달의아트',
+    'account': 'nail_bboon2',
+    'instagram': 'https://www.instagram.com/p/DgK16b4T16c/',
+  },
+  {
+    'shop': '온더블유네일',
+    'title': '12월 키티 · 눈사람 엠보 아트',
+    'price': '76,000원~',
+    'category': '💅 네일',
+    'keyword': '#크리스마스네일',
+    'tag': '#이달의아트',
+    'account': 'on.w_nail',
+    'instagram': 'https://www.instagram.com/p/DgGsQzKnw35/',
+  },
   {
     'shop': '루나네일',
     'title': '시럽 마블 글리터 아트',

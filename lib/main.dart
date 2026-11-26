@@ -6,6 +6,7 @@ import 'designs.dart';
 import 'favorites.dart';
 import 'home_screen.dart';
 import 'map_explorer_screen.dart';
+import 'my_reference.dart';
 import 'pinit_colors.dart';
 import 'reference_board_screen.dart';
 import 'reservation.dart';
@@ -344,6 +345,7 @@ class _PinItPickScreenState extends State<PinItPickScreen> {
     '전체',
     '#이달의아트',
     '#시럽네일',
+    '#크리스마스네일',
     '#생일케이크',
     '#레터링',
     '#미니타투',
@@ -566,11 +568,8 @@ class _PinItPickScreenState extends State<PinItPickScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    item['img']!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => imagePlaceholder(),
-                  ),
+                  // 사진이 없는 인스타 게시물 디자인은 계정 이름 카드로 표시
+                  referenceImage(item),
                   // 🔖 보관한 디자인 표시 (우측 상단)
                   if (widget.favorites.isFavorite(item))
                     const Positioned(
@@ -825,6 +824,9 @@ class _ReservationFormScreenState extends State<ReservationFormScreen> {
     }
     if (_hasDesignPhoto) {
       buffer.writeln('🖼️ 레퍼런스 사진은 이어서 보내드릴게요!');
+    }
+    if (widget.design?['instagram'] case final post?) {
+      buffer.writeln('🔗 레퍼런스: $post');
     }
     buffer
       ..writeln()
