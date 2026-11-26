@@ -4,7 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'designs.dart';
-import 'nail_shop.dart';
+import 'my_reference.dart';
+import 'public_shop.dart';
 import 'pinit_colors.dart';
 import 'shop.dart';
 
@@ -27,29 +28,52 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = '전체';
-  List<NailShop> _nailShops = []; // 공공데이터(소상공인 상가정보) 강남구 네일샵
+  List<PublicShop> _publicShops = []; // 공공데이터(소상공인 상가정보) 서울·부산 실제 샵
 
   // 지금 카드로 보고 있는 샵 (둘 중 하나만 선택됨, 둘 다 null이면 카드 없음)
   Shop? _selectedShop;
-  NailShop? _selectedNail;
+  PublicShop? _selectedPublic;
 
   // 이 배율 이상 확대하면 모든 핀에 샵 이름 표시
   static const double _labelZoom = 17;
-  bool _showAllLabels = false;
+  // 공공데이터 샵이 수만 곳이라 화면 안에 있는 것만, 어느 정도 확대했을 때만 그림
+  static const double _minPinZoom = 13;
+  static const int _maxPins = 600;
+  double _zoom = 15;
+  LatLngBounds? _visibleBounds;
+  bool get _showAllLabels => _zoom >= _labelZoom;
 
-  // 공공데이터 핀은 '전체'와 '네일' 카테고리에서만 표시
-  bool get _showNailShops => _selectedCategory == '전체' || _selectedCategory == '💅 네일';
+  List<PublicShop> get _filteredPublic => _selectedCategory == '전체'
+      ? _publicShops
+      : _publicShops.where((place) => place.category == _selectedCategory).toList();
+
+  // 지금 화면에 보이는 공공데이터 샵 (너무 축소했으면 그리지 않음)
+  List<PublicShop> get _visiblePublic {
+    final bounds = _visibleBounds;
+    if (bounds == null || _zoom < _minPinZoom) return const [];
+    return _filteredPublic
+        .where((place) => bounds.contains(LatLng(place.lat, place.lng)))
+        .take(_maxPins)
+        .toList();
+  }
+
+  void _updateCamera(MapCamera camera) {
+    setState(() {
+      _zoom = camera.zoom;
+      _visibleBounds = camera.visibleBounds;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadNailShops();
+    _loadPublicShops();
   }
 
-  Future<void> _loadNailShops() async {
+  Future<void> _loadPublicShops() async {
     try {
-      final shops = await loadNailShops();
-      if (mounted) setState(() => _nailShops = shops);
+      final shops = await loadPublicShops();
+      if (mounted) setState(() => _publicShops = shops);
     } catch (_) {
       // 데이터를 못 읽어도 직접 등록한 샵은 그대로 보여줌
     }
@@ -70,41 +94,41 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
     setState(() {
       _selectedCategory = category;
       _selectedShop = null;
-      _selectedNail = null;
+      _selectedPublic = null;
     });
   }
 
   void _onShopTap(Shop shop) {
     setState(() {
       _selectedShop = shop;
-      _selectedNail = null;
+      _selectedPublic = null;
     });
     _mapController.move(shop.location, _mapController.camera.zoom);
   }
 
-  void _onNailTap(NailShop nail) {
+  void _onPublicTap(PublicShop place) {
     setState(() {
       _selectedShop = null;
-      _selectedNail = nail;
+      _selectedPublic = place;
     });
-    _mapController.move(LatLng(nail.lat, nail.lng), _mapController.camera.zoom);
+    _mapController.move(LatLng(place.lat, place.lng), _mapController.camera.zoom);
   }
 
-  // 샵 이름으로 검색: 직접 등록한 샵 → 공공데이터 네일샵 순서로 찾아서 카드 열기
+  // 샵 이름으로 검색: 직접 등록한 샵 → 공공데이터 샵 순서로 찾아서 카드 열기
   void _search(String query) {
     final q = query.trim();
     if (q.isEmpty) return;
     FocusScope.of(context).unfocus();
 
     final shop = widget.shops.where((s) => s.name.contains(q)).firstOrNull;
-    final nail = shop == null ? _nailShops.where((n) => n.name.contains(q)).firstOrNull : null;
-    if (shop == null && nail == null) {
+    final place = shop == null ? _publicShops.where((n) => n.name.contains(q)).firstOrNull : null;
+    if (shop == null && place == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("'$q' 이름의 샵을 찾지 못했어요.")));
       return;
     }
 
     // 지금 카테고리에서 안 보이는 샵이면 전체로 바꿔서 보여줌
-    if ((shop != null && !_filteredShops.contains(shop)) || (nail != null && !_showNailShops)) {
+    if ((shop != null && !_filteredShops.contains(shop)) || (place != null && !_filteredPublic.contains(place))) {
       setState(() => _selectedCategory = '전체');
     }
     final zoom = _mapController.camera.zoom < 16 ? 16.0 : _mapController.camera.zoom;
@@ -112,15 +136,15 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
       _onShopTap(shop);
       _mapController.move(shop.location, zoom);
     } else {
-      _onNailTap(nail!);
-      _mapController.move(LatLng(nail.lat, nail.lng), zoom);
+      _onPublicTap(place!);
+      _mapController.move(LatLng(place.lat, place.lng), zoom);
     }
   }
 
   void _closeCard() {
     setState(() {
       _selectedShop = null;
-      _selectedNail = null;
+      _selectedPublic = null;
     });
   }
 
@@ -140,9 +164,15 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
   @override
   Widget build(BuildContext context) {
     final filteredShops = _filteredShops;
-    final hasNothing = filteredShops.isEmpty && !_showNailShops;
+    final hasCard = _selectedShop != null || _selectedPublic != null;
+    // 샵 카드 대신 하단 가운데에 띄울 안내 문구
+    final String? notice = filteredShops.isEmpty && _filteredPublic.isEmpty
+        ? '이 카테고리에는 아직 등록된 샵이 없어요.'
+        : !hasCard && _publicShops.isNotEmpty && _zoom < _minPinZoom
+            ? '지도를 확대하면 샵이 보여요.'
+            : null;
     // 넓은 화면에선 샵 카드를 오른쪽 패널로 (안내 문구는 그대로 하단 가운데)
-    final sidePanel = !hasNothing && MediaQuery.sizeOf(context).width >= pinitWideWidth;
+    final sidePanel = notice == null && MediaQuery.sizeOf(context).width >= pinitWideWidth;
 
     return Stack(
       children: [
@@ -154,10 +184,8 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
             initialCenter: gangnamStation,
             initialZoom: 15,
             onTap: (_, _) => _closeCard(),
-            onPositionChanged: (camera, _) {
-              final showAll = camera.zoom >= _labelZoom;
-              if (showAll != _showAllLabels) setState(() => _showAllLabels = showAll);
-            },
+            onMapReady: () => _updateCamera(_mapController.camera),
+            onPositionChanged: (camera, _) => _updateCamera(camera),
           ),
           children: [
             TileLayer(
@@ -167,15 +195,14 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
             // 모든 샵은 같은 점으로 표시, 누르거나 크게 확대하면 이름표로 바뀜 (고른 샵은 맨 위에)
             MarkerLayer(
               markers: [
-                if (_showNailShops)
-                  for (final nail in _nailShops)
-                    if (nail != _selectedNail)
-                      _buildMarker(
-                        point: LatLng(nail.lat, nail.lng),
-                        label: '💅 ${nail.name}',
-                        isSelected: false,
-                        onTap: () => _onNailTap(nail),
-                      ),
+                for (final place in _visiblePublic)
+                  if (place != _selectedPublic)
+                    _buildMarker(
+                      point: LatLng(place.lat, place.lng),
+                      label: '${place.category.split(' ').first} ${place.name}',
+                      isSelected: false,
+                      onTap: () => _onPublicTap(place),
+                    ),
                 for (final shop in filteredShops)
                   if (shop != _selectedShop)
                     _buildMarker(
@@ -184,12 +211,12 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
                       isSelected: false,
                       onTap: () => _onShopTap(shop),
                     ),
-                if (_selectedNail case final nail?)
+                if (_selectedPublic case final place?)
                   _buildMarker(
-                    point: LatLng(nail.lat, nail.lng),
-                    label: '💅 ${nail.name}',
+                    point: LatLng(place.lat, place.lng),
+                    label: '${place.category.split(' ').first} ${place.name}',
                     isSelected: true,
-                    onTap: () => _onNailTap(nail),
+                    onTap: () => _onPublicTap(place),
                   ),
                 if (_selectedShop case final shop?)
                   _buildMarker(
@@ -222,7 +249,7 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
               textInputAction: TextInputAction.search,
               onSubmitted: _search,
               decoration: InputDecoration(
-                hintText: _nailShops.isEmpty ? '샵 이름 검색' : '샵 이름 검색 (강남구 네일샵 ${_nailShops.length}곳)',
+                hintText: _publicShops.isEmpty ? '샵 이름 검색' : '샵 이름 검색 (서울·부산 실제 샵 ${_publicShops.length}곳)',
                 hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                 prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
                 suffixIcon: IconButton(
@@ -276,14 +303,14 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
         ),
 
         // 4. 핀을 눌렀을 때만 샵 카드 표시 (폰: 하단 / 넓은 화면: 필터 아래 오른쪽 패널)
-        if (_selectedShop != null || _selectedNail != null || hasNothing)
+        if (hasCard || notice != null)
           Positioned(
             top: sidePanel ? 116 : null,
             bottom: sidePanel ? null : 28,
             left: sidePanel ? null : 16,
             right: 16,
             width: sidePanel ? 400 : null,
-            child: hasNothing
+            child: notice != null
                 ? Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -291,12 +318,12 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text('이 카테고리에는 아직 등록된 샵이 없어요.'),
+                      child: Text(notice),
                     ),
                   )
                 : _selectedShop != null
                     ? _buildShopCard(_selectedShop!)
-                    : _buildNailCard(_selectedNail!),
+                    : _buildPublicCard(_selectedPublic!),
           ),
       ],
     );
@@ -426,16 +453,17 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
   }
 
   // 공공데이터 샵 카드: 예약 채널이 없어서 네이버 지도 검색으로 연결
-  Widget _buildNailCard(NailShop nail) {
-    final distance = const Distance().as(LengthUnit.Meter, gangnamStation, LatLng(nail.lat, nail.lng));
+  Widget _buildPublicCard(PublicShop place) {
+    final distance = const Distance().as(LengthUnit.Meter, gangnamStation, LatLng(place.lat, place.lng));
     final distanceLabel = distance < 1000 ? '${distance.round()}m' : '${(distance / 1000).toStringAsFixed(1)}km';
 
     return _buildCardFrame(
-      title: nail.name,
-      badges: [_buildBadge('강남역 $distanceLabel')],
+      title: place.name,
+      // 부산처럼 먼 곳은 강남역 기준 거리가 의미 없어서 뺌
+      badges: [if (distance < 30000) _buildBadge('강남역 $distanceLabel')],
       children: [
         Text(
-          '💅 네일 · ${nail.fullAddress}',
+          '${place.category} · ${place.fullAddress}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -452,11 +480,11 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
               label: 'N 네이버 지도에서 보기',
               color: naverGreen,
               textColor: Colors.white,
-              onPressed: () => _openLink(Uri.https('map.naver.com', '/p/search/${nail.name}'), '네이버'),
+              onPressed: () => _openLink(Uri.https('map.naver.com', '/p/search/${place.name}'), '네이버'),
             ),
           ],
         ),
-        _buildReserveButton(nail.name, '💅 네일'),
+        _buildReserveButton(place.name, place.category),
       ],
     );
   }
@@ -475,14 +503,7 @@ class _MultiChannelMapExplorerScreenState extends State<MultiChannelMapExplorerS
           separatorBuilder: (_, _) => const SizedBox(width: 6),
           itemBuilder: (context, index) => ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              designs[index]['img']!,
-              width: 72,
-              height: 72,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Container(width: 72, height: 72, color: Colors.grey.withValues(alpha: 0.2)),
-            ),
+            child: SizedBox(width: 72, height: 72, child: referenceImage(designs[index])),
           ),
         ),
       ),

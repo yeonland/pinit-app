@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'favorites.dart';
+import 'instagram_embed.dart';
 import 'pinit_colors.dart';
 
 // 이미지를 불러오지 못했을 때 보여줄 회색 자리표시
@@ -25,24 +26,29 @@ void showDesignDetailSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (sheetContext) {
-      return Padding(
+      // 인스타 임베드가 들어가면 길어져서 스크롤 가능하게
+      return SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: double.infinity,
-                height: 200,
-                child: Image.network(
-                  item['img']!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => imagePlaceholder(),
+            // 인스타 게시물이 있으면 공식 임베드, 없으면 사진
+            if (item['instagram'] case final post?)
+              InstagramPost(url: post)
+            else
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 200,
+                  child: Image.network(
+                    item['img']!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => imagePlaceholder(),
+                  ),
                 ),
               ),
-            ),
             const SizedBox(height: 14),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

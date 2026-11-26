@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:latlong2/latlong.dart';
 
+import 'package:pinit_app/instagram_embed.dart';
 import 'package:pinit_app/main.dart';
 import 'package:pinit_app/map_explorer_screen.dart';
 import 'package:pinit_app/reservation.dart';
@@ -44,7 +45,7 @@ void main() {
     // 홈: 무엇을 예약하시겠어요? + 6개 카테고리 (메이크업 포함)
     expect(find.text('무엇을 예약하시겠어요?'), findsOneWidget);
     expect(find.text('메이크업'), findsOneWidget);
-    expect(find.text('샵 지도 ✓'), findsOneWidget); // 지도에 샵이 있는 건 네일뿐
+    expect(find.text('샵 지도 ✓'), findsNWidgets(6)); // 공공데이터로 6개 카테고리 모두 실제 샵이 있음
 
     await tester.tap(find.text('메이크업'));
     await tester.pumpAndSettle();
@@ -96,11 +97,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('7만원 이상').last);
     await tester.pumpAndSettle();
-    expect(find.text('120,000원'), findsOneWidget);
+    expect(find.text('95,000원'), findsOneWidget);
     expect(find.text('55,000원'), findsNothing);
-    expect(find.text('디자인 3개'), findsOneWidget); // 80,000 · 70,000 · 120,000
+    expect(find.text('디자인 6개'), findsOneWidget); // 83,000~ · 95,000 · 76,000~ · 80,000 · 70,000 · 120,000
 
-    await tester.tap(find.text('양식 쓰기').first);
+    // 네 번째 카드(잉크타투)의 양식 쓰기
+    await tester.tap(find.text('양식 쓰기').at(3));
     await tester.pumpAndSettle();
     expect(find.byType(ReservationFormScreen), findsOneWidget);
     expect(find.widgetWithText(TextFormField, '잉크타투'), findsOneWidget);
@@ -424,6 +426,13 @@ void main() {
     expect(at(DateTime(2026, 10, 4)).dDayLabel(now), 'D-day');
     expect(at(DateTime(2026, 10, 7)).dDayLabel(now), 'D-3');
     expect(at(DateTime(2026, 10, 2)).dDayLabel(now), 'D+2');
+  });
+
+  test('인스타 게시물 링크를 공식 임베드 주소로 바꾼다', () {
+    expect(instagramEmbedUrl('https://www.instagram.com/p/DgMyvgdGEbT/?jplx=abc'),
+        'https://www.instagram.com/p/DgMyvgdGEbT/embed/');
+    expect(instagramEmbedUrl('instagram.com/reel/Ab_1-2'), 'https://www.instagram.com/reel/Ab_1-2/embed/');
+    expect(instagramEmbedUrl('https://www.instagram.com/riyu__nail/'), isNull);
   });
 }
 

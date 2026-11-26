@@ -38,6 +38,7 @@ dependencies:
   flutter_map: ^8.3.2
   latlong2: ^0.10.1
   url_launcher: ^6.3.3
+  web: ^1.1.1
   image_picker: ^1.2.4
   image: ^4.12.0
 
@@ -64,7 +65,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/data/nail_shops.json
+    - assets/data/public_shops.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:
